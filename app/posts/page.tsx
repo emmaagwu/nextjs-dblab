@@ -13,23 +13,39 @@ import Link from "next/link";
 import { getPublishedPosts, getAllTags } from "@/lib/queries";
 import { PostCard } from "@/components/PostCard";
 
-// Next.js 15: searchParams is now a Promise — must be awaited
 type Props = {
   searchParams: Promise<{ tag?: string; cursor?: string }>;
+};
+
+type Post = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  publishedAt: Date | null;
+  viewCount: number;
+  author: { id: string; name: string; email: string };
+  _count: { comments: number };
+  tags: { tag: { name: string; slug: string } }[];
+};
+
+type Tag = {
+  id: string;
+  name: string;
+  slug: string;
+  _count: { posts: number };
 };
 
 export default async function PostsPage({ searchParams }: Props) {
   const { tag, cursor } = await searchParams;
 
-  // PARALLEL FETCH — these two queries are independent
-  // Running them with Promise.all saves the time of the slower query
   const [posts, allTags] = await Promise.all([
     getPublishedPosts({ tag, cursor, limit: 6 }),
     getAllTags(),
   ]);
 
   const lastPost = posts.at(-1);
-  const hasNextPage = posts.length === 6; // if we got a full page, there may be more
+  const hasNextPage = posts.length === 6;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
@@ -58,13 +74,13 @@ export default async function PostsPage({ searchParams }: Props) {
         <span className="text-zinc-600">// </span>
         <span className="text-blue-400">prisma.post.findMany</span>
         <span className="text-zinc-400">{"({ where: { status: "}</span>
-        <span className="text-amber-300">'PUBLISHED'</span>
+        <span className="text-amber-300">&apos;PUBLISHED&apos;</span>
         <span className="text-zinc-400">, deletedAt: </span>
         <span className="text-amber-300">null</span>
-        {tag && <><span className="text-zinc-400">, tags: {"{ some: { tag: { slug: "}</span><span className="text-amber-300">'{tag}'</span><span className="text-zinc-400">{" } } }"}</span></>}
+        {tag && <><span className="text-zinc-400">{", tags: { some: { tag: { slug: "}</span><span className="text-amber-300">&apos;{tag}&apos;</span><span className="text-zinc-400">{" } } }"}</span></>}
         <span className="text-zinc-400">{" }, "}</span>
-        {cursor && <><span className="text-zinc-400">cursor: {"{ id: "}</span><span className="text-amber-300">'{cursor.slice(0,8)}…'</span><span className="text-zinc-400">{" }, skip: 1, "}</span></>}
-        <span className="text-zinc-400">take: <span className="text-amber-300">6</span>, orderBy: {"{ publishedAt: "}<span className="text-amber-300">'desc'</span>{" }, select: { … } })"}</span>
+        {cursor && <><span className="text-zinc-400">{"cursor: { id: "}</span><span className="text-amber-300">&apos;{cursor.slice(0, 8)}…&apos;</span><span className="text-zinc-400">{" }, skip: 1, "}</span></>}
+        <span className="text-zinc-400">take: <span className="text-amber-300">6</span>{", orderBy: { publishedAt: "}<span className="text-amber-300">&apos;desc&apos;</span>{", select: { … } })"}</span>
         <span className="text-zinc-600"> → {posts.length} rows</span>
       </div>
 
@@ -83,7 +99,7 @@ export default async function PostsPage({ searchParams }: Props) {
               )}
             </div>
           ) : (
-            posts.map((post) => <PostCard key={post.id} post={post} />)
+            posts.map((post: Post) => <PostCard key={post.id} post={post} />)
           )}
 
           {/* Cursor pagination */}
@@ -99,7 +115,7 @@ export default async function PostsPage({ searchParams }: Props) {
               ) : <div />}
               {hasNextPage && lastPost && (
                 <Link
-                  href={`/posts?${tag ? `tag=${tag}&` : ""}cursor=${lastPost.id}`}
+                  href={`/posts?${tag ? `tag=${tag}&` : ""}cursor=${(lastPost as Post).id}`}
                   className="text-sm px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-zinc-600 rounded-lg transition-colors"
                 >
                   Next page →
@@ -126,7 +142,7 @@ export default async function PostsPage({ searchParams }: Props) {
               </div>
               <div>
                 <div className="text-emerald-400 font-semibold mb-2">✅ Cursor (this page)</div>
-                <code className="block text-zinc-600 mb-2">cursor: {"{ id }"}, skip: 1</code>
+                <code className="block text-zinc-600 mb-2">{"cursor: { id }, skip: 1"}</code>
                 <ul className="space-y-1">
                   <li>• Index seek — O(1) regardless of size</li>
                   <li>• Consistent under concurrent writes</li>
@@ -156,7 +172,7 @@ export default async function PostsPage({ searchParams }: Props) {
                 <span>All</span>
                 <span className="text-xs text-zinc-700">{posts.length}</span>
               </Link>
-              {allTags.map((t) => (
+              {(allTags as Tag[]).map((t: Tag) => (
                 <Link
                   key={t.id}
                   href={`/posts?tag=${t.slug}`}
@@ -174,8 +190,8 @@ export default async function PostsPage({ searchParams }: Props) {
 
             <div className="mt-4 pt-4 border-t border-zinc-800 font-mono text-xs text-zinc-700 space-y-1">
               <div className="text-zinc-600 font-semibold">Prisma filter:</div>
-              <div>tags: {"{ some: {"}</div>
-              <div className="pl-3">tag: {"{ slug: tag }"}</div>
+              <div>{"tags: { some: {"}</div>
+              <div className="pl-3">{"tag: { slug: tag }"}</div>
               <div>{"} }"}</div>
             </div>
           </div>
