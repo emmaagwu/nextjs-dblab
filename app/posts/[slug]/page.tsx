@@ -103,7 +103,7 @@ export default async function PostPage({ params }: Props) {
         <span>{post.viewCount.toLocaleString()} views</span>
         <span>{post.comments.length} comments</span>
         {/* Computed field from Prisma Extension — not in DB */}
-        <span className="font-mono text-xs text-zinc-700">{post.readingTime}</span>
+        <span className="font-mono text-xs text-zinc-700">{(post as any).readingTime}</span>
       </div>
 
       {/* Admin actions for drafts */}
